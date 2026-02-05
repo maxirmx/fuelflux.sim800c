@@ -35,7 +35,9 @@ static void usage(const char* argv0) {
         << "but forces egress via a chosen interface (default: ppp0) using libcurl CURLOPT_INTERFACE.\n\n"
         << "Usage:\n"
         << "  " << argv0 << " [--url URL] [--ppp-if IFACE] [--card UID] [--pump UID]\n"
-        << "         [--timeout-sec N] [--insecure]\n";
+        << "         [--timeout-sec N] [--insecure] [--card-string] [--pump-string]\n\n"
+        << "Options:\n"
+        << "  --card-string / --pump-string : send those values as JSON strings instead of numbers\n";
 }
 
 int main(int argc, char** argv) {
@@ -53,6 +55,8 @@ int main(int argc, char** argv) {
     std::string pump_uid = "1";
     std::string timeout_s = "30";
     bool insecure = has_flag(args, "--insecure");
+    bool card_as_string = has_flag(args, "--card-string");
+    bool pump_as_string = has_flag(args, "--pump-string");
 
     (void)parse_arg(args, "--url", url);
     (void)parse_arg(args, "--ppp-if", iface);
@@ -60,8 +64,23 @@ int main(int argc, char** argv) {
     (void)parse_arg(args, "--pump", pump_uid);
     (void)parse_arg(args, "--timeout-sec", timeout_s);
 
-    std::ostringstream body;
-    body << "{\"CardUid\":" << card_uid << ",\"PumpControllerUid\":" << pump_uid << "}";
+    std::ostringstream body_builder;
+    body_builder << "{";
+
+    body_builder << "\"CardUid\":";
+    if (card_as_string) body_builder << "\"" << card_uid << "\"";
+    else body_builder << card_uid;
+
+    body_builder << ",";
+
+    body_builder << "\"PumpControllerUid\":";
+    if (pump_as_string) body_builder << "\"" << pump_uid << "\"";
+    else body_builder << pump_uid;
+
+    body_builder << "}";
+
+    // IMPORTANT: keep the body string alive for the duration of the request.
+    const std::string body = body_builder.str();
 
     if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK) {
         std::cerr << "curl_global_init failed\n";
@@ -82,15 +101,16 @@ int main(int argc, char** argv) {
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.str().c_str());
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)body.str().size());
+
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, body.c_str());
+    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, (long)body.size());
 
     // Key requirement: force egress via ppp0 even if eth0 is default route
     curl_easy_setopt(curl, CURLOPT_INTERFACE, iface.c_str());
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "orange-pi-ppp0-demo/1.0");
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "orange-pi-ppp0-demo/1.1");
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, std::stol(timeout_s));
 
     if (insecure) {
@@ -108,7 +128,7 @@ int main(int argc, char** argv) {
         std::cerr << "HTTP code (if any): " << http_code << "\n";
         std::cerr << "Interface: " << iface << "\n";
         std::cerr << "URL: " << url << "\n";
-        std::cerr << "Body: " << body.str() << "\n";
+        std::cerr << "Body: " << body << "\n";
         curl_slist_free_all(headers);
         curl_easy_cleanup(curl);
         curl_global_cleanup();
