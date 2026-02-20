@@ -15,7 +15,7 @@ cmake --build . -j
 ## Run (numeric JSON, default)
 
 ```bash
-sudo ./build/ppp0_authorize_demo
+sudo ./build/sim800c
 ```
 
 ## Run (send UIDs as strings)
@@ -23,7 +23,7 @@ sudo ./build/ppp0_authorize_demo
 Some backends expect `"3000"` instead of `3000`. Use:
 
 ```bash
-sudo ./build/ppp0_authorize_demo --card-string --pump-string
+sudo ./build/sim800c --card-string --pump-string
 ```
 
 ## Verify it uses ppp0
