@@ -20,7 +20,7 @@ sudo ./build/sim800c
 
 ## Run (send UIDs as strings)
 
-Some backends expect `"3000"` instead of `3000`. Use:
+If backend expect `"3000"` instead of `3000`. Use:
 
 ```bash
 sudo ./build/sim800c --card-string --pump-string
