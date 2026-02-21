@@ -1,4 +1,4 @@
-# PPP0 authorize demo (Orange Pi / Armbian) — fixed JSON body lifetime
+# SIM800C (PPP0 authorize) demo for Orange Pi
 
 ## Build
 
